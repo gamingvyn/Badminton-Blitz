@@ -50,12 +50,14 @@ function Lights() {
 }
 
 function GameScene() {
+  const { player1, player2 } = useBadminton();
+  
   return (
     <>
       <Lights />
       <Court />
-      <Player playerId={1} color="#2563eb" />
-      <Player playerId={2} color="#dc2626" />
+      <Player playerId={1} color={player1.color} />
+      <Player playerId={2} color={player2.color} />
       <Shuttlecock />
     </>
   );

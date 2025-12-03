@@ -5,13 +5,12 @@ export function RegisterScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
   
-  const { register, setScreen } = useBadminton();
+  const { register, setScreen, isLoading, error, setError } = useBadminton();
   
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError(null);
     
     if (!username.trim() || !password.trim()) {
       setError("Please fill in all fields");
@@ -33,10 +32,7 @@ export function RegisterScreen() {
       return;
     }
     
-    const success = register(username, password);
-    if (!success) {
-      setError("Username already exists");
-    }
+    await register(username, password);
   };
   
   return (
@@ -58,6 +54,7 @@ export function RegisterScreen() {
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition text-gray-900"
               placeholder="Choose a username"
+              disabled={isLoading}
             />
           </div>
           
@@ -71,6 +68,7 @@ export function RegisterScreen() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition text-gray-900"
               placeholder="Choose a password"
+              disabled={isLoading}
             />
           </div>
           
@@ -84,6 +82,7 @@ export function RegisterScreen() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition text-gray-900"
               placeholder="Confirm your password"
+              disabled={isLoading}
             />
           </div>
           
@@ -93,9 +92,10 @@ export function RegisterScreen() {
           
           <button
             type="submit"
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-[1.02] active:scale-[0.98]"
+            disabled={isLoading}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            Create Account
+            {isLoading ? "Creating account..." : "Create Account"}
           </button>
         </form>
         
@@ -105,6 +105,7 @@ export function RegisterScreen() {
             <button
               onClick={() => setScreen("login")}
               className="text-green-600 hover:text-green-700 font-semibold"
+              disabled={isLoading}
             >
               Sign in
             </button>

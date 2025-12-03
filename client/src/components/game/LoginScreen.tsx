@@ -4,23 +4,19 @@ import { useBadminton } from "@/lib/stores/useBadminton";
 export function LoginScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   
-  const { login, setScreen } = useBadminton();
+  const { login, setScreen, isLoading, error, setError } = useBadminton();
   
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError(null);
     
     if (!username.trim() || !password.trim()) {
       setError("Please enter both username and password");
       return;
     }
     
-    const success = login(username, password);
-    if (!success) {
-      setError("Invalid username or password");
-    }
+    await login(username, password);
   };
   
   return (
@@ -42,6 +38,7 @@ export function LoginScreen() {
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition text-gray-900"
               placeholder="Enter your username"
+              disabled={isLoading}
             />
           </div>
           
@@ -55,6 +52,7 @@ export function LoginScreen() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition text-gray-900"
               placeholder="Enter your password"
+              disabled={isLoading}
             />
           </div>
           
@@ -64,9 +62,10 @@ export function LoginScreen() {
           
           <button
             type="submit"
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-[1.02] active:scale-[0.98]"
+            disabled={isLoading}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            Sign In
+            {isLoading ? "Signing in..." : "Sign In"}
           </button>
         </form>
         
@@ -76,6 +75,7 @@ export function LoginScreen() {
             <button
               onClick={() => setScreen("register")}
               className="text-green-600 hover:text-green-700 font-semibold"
+              disabled={isLoading}
             >
               Create one
             </button>

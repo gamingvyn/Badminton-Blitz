@@ -36,7 +36,7 @@ export function Player({ playerId, color }: PlayerProps) {
   const racketRef = useRef<THREE.Group>(null);
   
   const { 
-    player1, player2, shuttlecock, isServing, servingPlayer, gameMode,
+    player1, player2, shuttlecock, isServing, servingPlayer, gameMode, aiDifficulty,
     updatePlayer1, updatePlayer2, updateShuttlecock, startServe 
   } = useBadminton();
   const { playHit } = useAudio();
@@ -106,27 +106,37 @@ export function Player({ playerId, color }: PlayerProps) {
     if (isAI) {
       const shuttle = shuttlecock;
       
+      const difficultySettings = {
+        beginner: { speed: 0.4, reactionDelay: 0.4, smashChance: 0.2, jumpChance: 0.1 },
+        intermediate: { speed: 0.7, reactionDelay: 0.25, smashChance: 0.5, jumpChance: 0.4 },
+        expert: { speed: 1.0, reactionDelay: 0.1, smashChance: 0.8, jumpChance: 0.7 },
+      };
+      
+      const settings = difficultySettings[aiDifficulty];
+      const aiSpeed = PLAYER_SPEED * settings.speed;
+      
       if (isServing && servingPlayer === 2) {
         if (Math.abs(x - 5) < 0.3) {
           hitShuttlecock(false);
         } else {
           if (x < 5) {
-            velocityX = PLAYER_SPEED * 0.7;
+            velocityX = aiSpeed;
           } else {
-            velocityX = -PLAYER_SPEED * 0.7;
+            velocityX = -aiSpeed;
           }
         }
       } else {
+        const predictionFactor = settings.reactionDelay;
         const targetX = shuttle.isInPlay && shuttle.lastHitBy === 1 
-          ? shuttle.x + shuttle.velocityX * 0.3
+          ? shuttle.x + shuttle.velocityX * predictionFactor
           : 5;
         
         const clampedTarget = Math.max(0.5, Math.min(COURT_RIGHT - 0.5, targetX));
         
         if (x < clampedTarget - 0.3) {
-          velocityX = PLAYER_SPEED * 0.7;
+          velocityX = aiSpeed;
         } else if (x > clampedTarget + 0.3) {
-          velocityX = -PLAYER_SPEED * 0.7;
+          velocityX = -aiSpeed;
         } else {
           velocityX = 0;
         }
@@ -135,7 +145,8 @@ export function Player({ playerId, color }: PlayerProps) {
           shuttle.y > -1 && 
           Math.abs(shuttle.x - x) < 2.5 &&
           shuttle.velocityX < 0 &&
-          isGrounded;
+          isGrounded &&
+          Math.random() < settings.jumpChance;
           
         if (shouldJump) {
           velocityY = JUMP_FORCE;
@@ -149,7 +160,7 @@ export function Player({ playerId, color }: PlayerProps) {
           
         if (shouldHit) {
           const isJumpSmash = !isGrounded && shuttle.y > 0;
-          hitShuttlecock(isJumpSmash || Math.random() > 0.5);
+          hitShuttlecock(isJumpSmash || Math.random() < settings.smashChance);
         }
       }
     } else {

@@ -6,6 +6,7 @@ import { RegisterScreen } from "./components/game/RegisterScreen";
 import { MenuScreen } from "./components/game/MenuScreen";
 import { BadmintonGame } from "./components/game/BadmintonGame";
 import { MatchEndScreen } from "./components/game/MatchEndScreen";
+import { StatsScreen } from "./components/game/StatsScreen";
 
 function App() {
   const { screen } = useBadminton();
@@ -24,6 +25,7 @@ function App() {
       {screen === "login" && <LoginScreen />}
       {screen === "register" && <RegisterScreen />}
       {screen === "menu" && <MenuScreen />}
+      {screen === "stats" && <StatsScreen />}
       {screen === "playing" && <BadmintonGame />}
       {screen === "matchEnd" && (
         <>
