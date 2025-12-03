@@ -1,14 +1,14 @@
 import { useBadminton } from "@/lib/stores/useBadminton";
 
 export function MatchEndScreen() {
-  const { player1, player2, winner, resetMatch, startNewGame, gameMode } = useBadminton();
+  const { player1, player2, winner, resetMatch, startNewGame } = useBadminton();
   
   const winnerName = winner === 1 ? player1.name : player2.name;
   const winnerScore = winner === 1 ? player1.score : player2.score;
   const loserScore = winner === 1 ? player2.score : player1.score;
   
   const handlePlayAgain = () => {
-    startNewGame(gameMode, player1.name, player2.name);
+    startNewGame();
   };
   
   return (

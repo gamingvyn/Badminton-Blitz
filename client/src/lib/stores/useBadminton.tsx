@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 
-export type GameScreen = "login" | "register" | "menu" | "playing" | "matchEnd" | "stats";
+export type GameScreen = "menu" | "playing" | "matchEnd";
 export type GameMode = "ai" | "local";
 export type AIDifficulty = "beginner" | "intermediate" | "expert";
 
@@ -26,30 +26,12 @@ interface Shuttlecock {
   lastHitBy: 1 | 2 | null;
 }
 
-interface UserData {
-  id: number;
-  username: string;
-  wins: number;
-  losses: number;
-  avatarColor: string;
-}
-
-interface MatchData {
-  id: number;
-  player1Score: number;
-  player2Score: number;
-  winnerId: number;
-  gameMode: string;
-  aiDifficulty: string | null;
-  playedAt: string;
-}
-
 interface BadmintonState {
   screen: GameScreen;
   gameMode: GameMode;
   aiDifficulty: AIDifficulty;
-  currentUser: UserData | null;
-  matchHistory: MatchData[];
+  playerName: string;
+  playerColor: string;
   
   player1: Player;
   player2: Player;
@@ -60,13 +42,11 @@ interface BadmintonState {
   matchPoint: number;
   winner: 1 | 2 | null;
   
-  isLoading: boolean;
-  error: string | null;
-  
   setScreen: (screen: GameScreen) => void;
   setGameMode: (mode: GameMode) => void;
   setAIDifficulty: (difficulty: AIDifficulty) => void;
-  setError: (error: string | null) => void;
+  setPlayerName: (name: string) => void;
+  setPlayerColor: (color: string) => void;
   
   updatePlayer1: (updates: Partial<Player>) => void;
   updatePlayer2: (updates: Partial<Player>) => void;
@@ -75,15 +55,7 @@ interface BadmintonState {
   scorePoint: (player: 1 | 2) => void;
   startServe: () => void;
   resetMatch: () => void;
-  startNewGame: (mode: GameMode, player1Name: string, player2Name: string) => void;
-  
-  login: (username: string, password: string) => Promise<boolean>;
-  register: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  updateAvatarColor: (color: string) => Promise<void>;
-  recordMatch: () => Promise<void>;
-  loadMatchHistory: () => Promise<void>;
-  refreshUserData: () => Promise<void>;
+  startNewGame: () => void;
 }
 
 const GROUND_Y = -3.5;
@@ -124,11 +96,11 @@ const initialShuttlecock: Shuttlecock = {
 
 export const useBadminton = create<BadmintonState>()(
   subscribeWithSelector((set, get) => ({
-    screen: "login",
+    screen: "menu",
     gameMode: "ai",
     aiDifficulty: "intermediate",
-    currentUser: null,
-    matchHistory: [],
+    playerName: "Player",
+    playerColor: "#2563eb",
     
     player1: { ...initialPlayer1 },
     player2: { ...initialPlayer2 },
@@ -139,13 +111,14 @@ export const useBadminton = create<BadmintonState>()(
     matchPoint: MATCH_POINT,
     winner: null,
     
-    isLoading: false,
-    error: null,
-    
     setScreen: (screen) => set({ screen }),
     setGameMode: (mode) => set({ gameMode: mode }),
     setAIDifficulty: (difficulty) => set({ aiDifficulty: difficulty }),
-    setError: (error) => set({ error }),
+    setPlayerName: (name) => set({ playerName: name }),
+    setPlayerColor: (color) => set({ 
+      playerColor: color,
+      player1: { ...get().player1, color }
+    }),
     
     updatePlayer1: (updates) => set((state) => ({
       player1: { ...state.player1, ...updates }
@@ -183,11 +156,9 @@ export const useBadminton = create<BadmintonState>()(
       if (updatedState.player1.score >= MATCH_POINT && 
           updatedState.player1.score - updatedState.player2.score >= 2) {
         set({ winner: 1, screen: "matchEnd" });
-        get().recordMatch();
       } else if (updatedState.player2.score >= MATCH_POINT && 
                  updatedState.player2.score - updatedState.player1.score >= 2) {
         set({ winner: 2, screen: "matchEnd" });
-        get().recordMatch();
       }
       
       const serverX = updatedState.servingPlayer === 1 ? -5 : 5;
@@ -205,164 +176,33 @@ export const useBadminton = create<BadmintonState>()(
     
     startServe: () => set({ isServing: false }),
     
-    resetMatch: () => set({
-      player1: { ...initialPlayer1 },
-      player2: { ...initialPlayer2 },
-      shuttlecock: { ...initialShuttlecock },
-      isServing: true,
-      servingPlayer: 1,
-      winner: null,
-      screen: "menu",
-    }),
-    
-    startNewGame: (mode, player1Name, player2Name) => {
+    resetMatch: () => {
       const state = get();
-      const p1Color = state.currentUser?.avatarColor || "#2563eb";
+      set({
+        player1: { ...initialPlayer1, name: state.playerName, color: state.playerColor },
+        player2: { ...initialPlayer2 },
+        shuttlecock: { ...initialShuttlecock },
+        isServing: true,
+        servingPlayer: 1,
+        winner: null,
+        screen: "menu",
+      });
+    },
+    
+    startNewGame: () => {
+      const state = get();
+      const aiName = `CPU (${state.aiDifficulty})`;
       
       set({
-        gameMode: mode,
-        player1: { ...initialPlayer1, name: player1Name, color: p1Color },
-        player2: { ...initialPlayer2, name: player2Name },
+        gameMode: "ai",
+        player1: { ...initialPlayer1, name: state.playerName, color: state.playerColor },
+        player2: { ...initialPlayer2, name: aiName },
         shuttlecock: { ...initialShuttlecock },
         isServing: true,
         servingPlayer: 1,
         winner: null,
         screen: "playing",
       });
-    },
-    
-    login: async (username, password) => {
-      set({ isLoading: true, error: null });
-      try {
-        const response = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        });
-        
-        if (!response.ok) {
-          const data = await response.json();
-          set({ error: data.message || "Login failed", isLoading: false });
-          return false;
-        }
-        
-        const user = await response.json();
-        set({ 
-          currentUser: user, 
-          screen: "menu", 
-          isLoading: false,
-          player1: { ...initialPlayer1, color: user.avatarColor }
-        });
-        return true;
-      } catch (error) {
-        set({ error: "Connection error", isLoading: false });
-        return false;
-      }
-    },
-    
-    register: async (username, password) => {
-      set({ isLoading: true, error: null });
-      try {
-        const response = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        });
-        
-        if (!response.ok) {
-          const data = await response.json();
-          set({ error: data.message || "Registration failed", isLoading: false });
-          return false;
-        }
-        
-        const user = await response.json();
-        set({ currentUser: user, screen: "menu", isLoading: false });
-        return true;
-      } catch (error) {
-        set({ error: "Connection error", isLoading: false });
-        return false;
-      }
-    },
-    
-    logout: () => set({ 
-      currentUser: null, 
-      screen: "login",
-      matchHistory: [],
-    }),
-    
-    updateAvatarColor: async (color) => {
-      const state = get();
-      if (!state.currentUser) return;
-      
-      try {
-        await fetch(`/api/users/${state.currentUser.id}/avatar`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ avatarColor: color }),
-        });
-        
-        set({
-          currentUser: { ...state.currentUser, avatarColor: color },
-          player1: { ...state.player1, color },
-        });
-      } catch (error) {
-        console.error("Failed to update avatar:", error);
-      }
-    },
-    
-    recordMatch: async () => {
-      const state = get();
-      if (!state.currentUser) return;
-      
-      try {
-        await fetch("/api/matches", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            player1Id: state.currentUser.id,
-            player2Id: state.gameMode === "local" ? null : null,
-            player1Score: state.player1.score,
-            player2Score: state.player2.score,
-            winnerId: state.winner === 1 ? state.currentUser.id : 0,
-            gameMode: state.gameMode,
-            aiDifficulty: state.gameMode === "ai" ? state.aiDifficulty : null,
-          }),
-        });
-        
-        await get().refreshUserData();
-      } catch (error) {
-        console.error("Failed to record match:", error);
-      }
-    },
-    
-    loadMatchHistory: async () => {
-      const state = get();
-      if (!state.currentUser) return;
-      
-      try {
-        const response = await fetch(`/api/matches/${state.currentUser.id}`);
-        if (response.ok) {
-          const matches = await response.json();
-          set({ matchHistory: matches });
-        }
-      } catch (error) {
-        console.error("Failed to load match history:", error);
-      }
-    },
-    
-    refreshUserData: async () => {
-      const state = get();
-      if (!state.currentUser) return;
-      
-      try {
-        const response = await fetch(`/api/users/${state.currentUser.id}`);
-        if (response.ok) {
-          const user = await response.json();
-          set({ currentUser: user });
-        }
-      } catch (error) {
-        console.error("Failed to refresh user data:", error);
-      }
     },
   }))
 );

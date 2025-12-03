@@ -33,9 +33,11 @@ export function GameHUD() {
             <p className="text-white text-xl font-bold mb-2">
               {servingPlayer === 1 ? player1.name : player2.name}'s Serve
             </p>
-            <p className="text-gray-300 text-sm">
-              {servingPlayer === 1 ? "Press Z (smash) or X (lob) to serve" : "Press C (smash) or V (lob) to serve"}
-            </p>
+            {servingPlayer === 1 && (
+              <p className="text-gray-300 text-sm">
+                Press Z (smash) or X (lob) to serve
+              </p>
+            )}
           </div>
         </div>
       )}
