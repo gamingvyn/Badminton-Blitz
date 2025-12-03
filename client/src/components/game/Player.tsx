@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useKeyboardControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -31,9 +31,146 @@ enum Controls {
   lob2 = "lob2",
 }
 
+function StickmanModel({ 
+  color, 
+  velocityX, 
+  isGrounded, 
+  swingPhaseRef,
+  facingRight 
+}: { 
+  color: string; 
+  velocityX: number; 
+  isGrounded: boolean;
+  swingPhaseRef: React.MutableRefObject<number>;
+  facingRight: boolean;
+}) {
+  const leftLegRef = useRef<THREE.Group>(null);
+  const rightLegRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const racketArmRef = useRef<THREE.Group>(null);
+  const legPhaseRef = useRef(0);
+  
+  const racketSide = facingRight ? 1 : -1;
+  
+  useFrame((_, delta) => {
+    if (!isGrounded) {
+      if (leftLegRef.current) leftLegRef.current.rotation.x = -0.3;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = 0.3;
+    } else if (Math.abs(velocityX) > 0.1) {
+      legPhaseRef.current += delta * 15;
+      const legSwing = Math.sin(legPhaseRef.current) * 0.6;
+      if (leftLegRef.current) leftLegRef.current.rotation.x = legSwing;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = -legSwing;
+    } else {
+      if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
+    }
+    
+    if (leftArmRef.current) {
+      if (Math.abs(velocityX) > 0.1 && isGrounded) {
+        const armSwing = Math.sin(legPhaseRef.current) * 0.4;
+        leftArmRef.current.rotation.x = -armSwing;
+      } else {
+        leftArmRef.current.rotation.x = 0;
+      }
+    }
+    
+    if (racketArmRef.current) {
+      const baseAngle = -0.5 * racketSide;
+      const swingAngle = swingPhaseRef.current * -2.0 * racketSide;
+      racketArmRef.current.rotation.z = baseAngle + swingAngle;
+      racketArmRef.current.rotation.x = swingPhaseRef.current * -0.5;
+    }
+  });
+  
+  const skinColor = "#ffdbac";
+  const limbThickness = 0.06;
+  
+  return (
+    <group>
+      <mesh position={[0, 0.9, 0]} castShadow>
+        <sphereGeometry args={[0.18, 16, 16]} />
+        <meshStandardMaterial color={skinColor} />
+      </mesh>
+      
+      <mesh position={[0, 0.55, 0]} castShadow>
+        <cylinderGeometry args={[0.12, 0.1, 0.5]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+      
+      <group ref={leftArmRef} position={[-0.18 * racketSide, 0.7, 0]}>
+        <mesh position={[0, -0.15, 0]} rotation={[0, 0, 0.2 * racketSide]}>
+          <cylinderGeometry args={[limbThickness, limbThickness, 0.25]} />
+          <meshStandardMaterial color={skinColor} />
+        </mesh>
+        <mesh position={[-0.05 * racketSide, -0.35, 0]} rotation={[0, 0, 0.1 * racketSide]}>
+          <cylinderGeometry args={[limbThickness * 0.9, limbThickness * 0.9, 0.2]} />
+          <meshStandardMaterial color={skinColor} />
+        </mesh>
+      </group>
+      
+      <group ref={racketArmRef} position={[0.18 * racketSide, 0.7, 0]}>
+        <mesh position={[0, -0.15, 0]} rotation={[0, 0, -0.2 * racketSide]}>
+          <cylinderGeometry args={[limbThickness, limbThickness, 0.25]} />
+          <meshStandardMaterial color={skinColor} />
+        </mesh>
+        <mesh position={[0.05 * racketSide, -0.35, 0]} rotation={[0, 0, -0.1 * racketSide]}>
+          <cylinderGeometry args={[limbThickness * 0.9, limbThickness * 0.9, 0.2]} />
+          <meshStandardMaterial color={skinColor} />
+        </mesh>
+        
+        <group position={[0.1 * racketSide, -0.5, 0]} rotation={[0, 0, -0.3 * racketSide]}>
+          <mesh position={[0, 0.15, 0]}>
+            <cylinderGeometry args={[0.015, 0.015, 0.3]} />
+            <meshStandardMaterial color="#8B4513" />
+          </mesh>
+          <mesh position={[0, 0.35, 0]}>
+            <ringGeometry args={[0.08, 0.12, 12]} />
+            <meshStandardMaterial color="#333333" side={THREE.DoubleSide} />
+          </mesh>
+          <mesh position={[0, 0.35, 0]}>
+            <circleGeometry args={[0.08, 12]} />
+            <meshStandardMaterial color="#eeeeee" transparent opacity={0.4} side={THREE.DoubleSide} />
+          </mesh>
+        </group>
+      </group>
+      
+      <group ref={leftLegRef} position={[-0.08, 0.28, 0]}>
+        <mesh position={[0, -0.18, 0]}>
+          <cylinderGeometry args={[limbThickness, limbThickness, 0.3]} />
+          <meshStandardMaterial color={color} />
+        </mesh>
+        <mesh position={[0, -0.4, 0]}>
+          <cylinderGeometry args={[limbThickness * 0.9, limbThickness * 0.9, 0.25]} />
+          <meshStandardMaterial color={skinColor} />
+        </mesh>
+        <mesh position={[0.02, -0.55, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <capsuleGeometry args={[0.04, 0.08, 4, 8]} />
+          <meshStandardMaterial color="#333333" />
+        </mesh>
+      </group>
+      
+      <group ref={rightLegRef} position={[0.08, 0.28, 0]}>
+        <mesh position={[0, -0.18, 0]}>
+          <cylinderGeometry args={[limbThickness, limbThickness, 0.3]} />
+          <meshStandardMaterial color={color} />
+        </mesh>
+        <mesh position={[0, -0.4, 0]}>
+          <cylinderGeometry args={[limbThickness * 0.9, limbThickness * 0.9, 0.25]} />
+          <meshStandardMaterial color={skinColor} />
+        </mesh>
+        <mesh position={[0.02, -0.55, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <capsuleGeometry args={[0.04, 0.08, 4, 8]} />
+          <meshStandardMaterial color="#333333" />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
 export function Player({ playerId, color }: PlayerProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const racketRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const swingPhaseRef = useRef(0);
   
   const { 
     player1, player2, shuttlecock, isServing, servingPlayer, gameMode, aiDifficulty,
@@ -53,6 +190,11 @@ export function Player({ playerId, color }: PlayerProps) {
   const lobKey = playerId === 1 ? Controls.lob : Controls.lob2;
   
   const isAI = playerId === 2 && gameMode === "ai";
+  const facingRight = playerId === 1;
+  
+  const triggerSwing = useCallback(() => {
+    swingPhaseRef.current = 1;
+  }, []);
   
   const hitShuttlecock = useCallback((isSmash: boolean) => {
     const shuttle = shuttlecock;
@@ -61,6 +203,8 @@ export function Player({ playerId, color }: PlayerProps) {
     const distance = Math.sqrt(dx * dx + dy * dy);
     
     if (distance < 2.0) {
+      triggerSwing();
+      
       const isJumping = !player.isGrounded;
       const direction = playerId === 1 ? 1 : -1;
       
@@ -88,13 +232,17 @@ export function Player({ playerId, color }: PlayerProps) {
         startServe();
       }
     }
-  }, [shuttlecock, player, playerId, updateShuttlecock, playHit, isServing, servingPlayer, startServe]);
+  }, [shuttlecock, player, playerId, updateShuttlecock, playHit, isServing, servingPlayer, startServe, triggerSwing]);
   
   const prevSmash = useRef(false);
   const prevLob = useRef(false);
   
   useFrame((_, delta) => {
-    if (!meshRef.current || !racketRef.current) return;
+    if (!groupRef.current) return;
+    
+    if (swingPhaseRef.current > 0) {
+      swingPhaseRef.current = Math.max(0, swingPhaseRef.current - delta * 5);
+    }
     
     const keys = getKeys();
     let velocityX = player.velocityX;
@@ -220,32 +368,18 @@ export function Player({ playerId, color }: PlayerProps) {
       isJumping: !isGrounded,
     });
     
-    meshRef.current.position.set(x, y, 0);
-    racketRef.current.position.set(x + (playerId === 1 ? 0.5 : -0.5), y + 0.3, 0);
-    racketRef.current.rotation.z = playerId === 1 ? -0.3 : 0.3;
+    groupRef.current.position.set(x, y, 0);
   });
   
   return (
-    <group>
-      <mesh ref={meshRef} position={[player.x, player.y, 0]} castShadow>
-        <capsuleGeometry args={[0.3, 0.8, 8, 16]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      
-      <group ref={racketRef}>
-        <mesh position={[0, 0.4, 0]}>
-          <cylinderGeometry args={[0.02, 0.02, 0.5]} />
-          <meshStandardMaterial color="#8B4513" />
-        </mesh>
-        <mesh position={[0, 0.7, 0]}>
-          <ringGeometry args={[0.15, 0.25, 16]} />
-          <meshStandardMaterial color="#333333" side={THREE.DoubleSide} />
-        </mesh>
-        <mesh position={[0, 0.7, 0]}>
-          <circleGeometry args={[0.15, 16]} />
-          <meshStandardMaterial color="#dddddd" transparent opacity={0.3} side={THREE.DoubleSide} />
-        </mesh>
-      </group>
+    <group ref={groupRef} position={[player.x, player.y, 0]}>
+      <StickmanModel 
+        color={color} 
+        velocityX={player.velocityX}
+        isGrounded={player.isGrounded}
+        swingPhaseRef={swingPhaseRef}
+        facingRight={facingRight}
+      />
     </group>
   );
 }
