@@ -1,28 +1,21 @@
-# Badminton Game
+# Badminton Blitz
 
-A 2D badminton game built with React Three Fiber where you can play against AI or a friend on the same keyboard.
+A 2D badminton game built with React Three Fiber where you play against AI.
 
 ## Features
 
-- **Account System**: Create an account with username and password (stored in browser localStorage)
-- **Two Game Modes**: Play against AI or local multiplayer (vs Friend)
+- **Single Player vs AI**: Challenge the CPU at three difficulty levels
+- **Difficulty Levels**: Beginner, Intermediate, Expert
 - **Physics-Based Gameplay**: Realistic shuttlecock physics with gravity and air resistance
 - **Jump Smash**: Press jump while smashing for extra power!
 - **Scoring**: First to 21 points with 2-point lead wins
 
 ## Controls
 
-### Player 1 (Left Side)
 - **Arrow Left/Right**: Move
 - **Arrow Up**: Jump
-- **Z**: Smash (powerful shot)
-- **X**: Lob (high arc shot)
-
-### Player 2 (Right Side) - Local Multiplayer Only
-- **A/D**: Move
-- **W**: Jump
-- **C**: Smash
-- **V**: Lob
+- **Z**: Smash (powerful shot) - Jump + Smash = Extra Power!
+- **X**: Lob (high arc shot to return smashes)
 
 ## Project Structure
 
@@ -33,12 +26,10 @@ client/
 │   │   └── game/
 │   │       ├── BadmintonGame.tsx  # Main game component
 │   │       ├── Court.tsx          # Badminton court
-│   │       ├── Player.tsx         # Player physics & controls
+│   │       ├── Player.tsx         # Player physics & controls (includes AI)
 │   │       ├── Shuttlecock.tsx    # Shuttlecock physics
 │   │       ├── GameHUD.tsx        # Score display
-│   │       ├── LoginScreen.tsx    # Login form
-│   │       ├── RegisterScreen.tsx # Registration form
-│   │       ├── MenuScreen.tsx     # Game mode selection
+│   │       ├── MenuScreen.tsx     # Game setup and settings
 │   │       └── MatchEndScreen.tsx # End game screen
 │   ├── lib/
 │   │   └── stores/
@@ -64,3 +55,10 @@ server/
 - Out of bounds detection - going past court boundaries gives opponent a point
 - Ground landing - shuttle hitting ground on your side gives opponent a point
 - Serve rotation - winner of point serves next
+
+## AI Behavior
+
+The AI opponent adjusts behavior based on difficulty:
+- **Beginner**: Slower movement, lower reaction time, less likely to smash/jump
+- **Intermediate**: Moderate speed and reactions, balanced gameplay
+- **Expert**: Fast movement, quick reactions, aggressive smashing and jumping
